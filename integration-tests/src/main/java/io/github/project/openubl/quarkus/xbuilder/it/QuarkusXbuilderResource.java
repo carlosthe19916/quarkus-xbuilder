@@ -17,13 +17,16 @@
 package io.github.project.openubl.quarkus.xbuilder.it;
 
 import io.github.project.openubl.quarkus.xbuilder.XBuilder;
+import io.github.project.openubl.xbuilder.content.catalogs.Catalog1_Invoice;
 import io.github.project.openubl.xbuilder.content.catalogs.Catalog6;
 import io.github.project.openubl.xbuilder.content.models.common.Cliente;
 import io.github.project.openubl.xbuilder.content.models.common.Proveedor;
 import io.github.project.openubl.xbuilder.content.models.standard.general.CreditNote;
 import io.github.project.openubl.xbuilder.content.models.standard.general.DebitNote;
-import io.github.project.openubl.xbuilder.content.models.standard.general.DocumentoDetalle;
+import io.github.project.openubl.xbuilder.content.models.standard.general.DocumentoVentaDetalle;
 import io.github.project.openubl.xbuilder.content.models.standard.general.Invoice;
+import io.github.project.openubl.xbuilder.content.models.sunat.baja.VoidedDocuments;
+import io.github.project.openubl.xbuilder.content.models.sunat.baja.VoidedDocumentsItem;
 import io.github.project.openubl.xbuilder.enricher.ContentEnricher;
 import io.quarkus.qute.Template;
 
@@ -37,6 +40,7 @@ import java.time.LocalDate;
 import static io.github.project.openubl.quarkus.xbuilder.XBuilder.Type.CREDIT_NOTE;
 import static io.github.project.openubl.quarkus.xbuilder.XBuilder.Type.DEBIT_NOTE;
 import static io.github.project.openubl.quarkus.xbuilder.XBuilder.Type.INVOICE;
+import static io.github.project.openubl.quarkus.xbuilder.XBuilder.Type.VOIDED_DOCUMENTS;
 
 @Path("/quarkus-xbuilder")
 @ApplicationScoped
@@ -81,6 +85,18 @@ public class QuarkusXbuilderResource {
         return template.data(debitNote).render();
     }
 
+    @GET
+    @Path("voided-documents")
+    public String createVoidedDocuments() {
+        VoidedDocuments voidedDocuments = getVoidedDocuments();
+
+        ContentEnricher enricher = new ContentEnricher(xBuilder.getDefaults(), () -> LocalDate.of(2022, 1, 25));
+        enricher.enrich(voidedDocuments);
+
+        Template template = xBuilder.getTemplate(VOIDED_DOCUMENTS);
+        return template.data(voidedDocuments).render();
+    }
+
     private Invoice getBaseInvoice() {
         return Invoice
                 .builder()
@@ -97,7 +113,7 @@ public class QuarkusXbuilderResource {
                         .tipoDocumentoIdentidad(Catalog6.RUC.toString())
                         .build()
                 )
-                .detalle(DocumentoDetalle.builder()
+                .detalle(DocumentoVentaDetalle.builder()
                         .descripcion("Item1")
                         .cantidad(new BigDecimal("10"))
                         .precio(new BigDecimal("100"))
@@ -125,8 +141,7 @@ public class QuarkusXbuilderResource {
                         .tipoDocumentoIdentidad(Catalog6.RUC.toString())
                         .build()
                 )
-                .detalle(DocumentoDetalle
-                        .builder()
+                .detalle(DocumentoVentaDetalle.builder()
                         .descripcion("Item1")
                         .cantidad(new BigDecimal("10"))
                         .precio(new BigDecimal("100"))
@@ -147,18 +162,43 @@ public class QuarkusXbuilderResource {
                         .razonSocial("Softgreen S.A.C.")
                         .build()
                 )
-                .cliente(Cliente
-                        .builder()
+                .cliente(Cliente.builder()
                         .nombre("Carlos Feria")
                         .numeroDocumentoIdentidad("12121212121")
                         .tipoDocumentoIdentidad(Catalog6.RUC.toString())
                         .build()
                 )
-                .detalle(DocumentoDetalle
-                        .builder()
+                .detalle(DocumentoVentaDetalle.builder()
                         .descripcion("Item1")
                         .cantidad(new BigDecimal("10"))
                         .precio(new BigDecimal("100"))
+                        .build()
+                )
+                .build();
+    }
+
+    public VoidedDocuments getVoidedDocuments() {
+        return VoidedDocuments.builder()
+                .numero(1)
+                .fechaEmision(LocalDate.of(2022, 01, 31))
+                .fechaEmisionComprobantes(LocalDate.of(2022, 01, 29))
+                .proveedor(Proveedor.builder()
+                        .ruc("12345678912")
+                        .razonSocial("Softgreen S.A.C.")
+                        .build()
+                )
+                .comprobante(VoidedDocumentsItem.builder()
+                        .serie("F001")
+                        .numero(1)
+                        .tipoComprobante(Catalog1_Invoice.FACTURA.getCode())
+                        .descripcionSustento("Mi sustento1")
+                        .build()
+                )
+                .comprobante(VoidedDocumentsItem.builder()
+                        .serie("F001")
+                        .numero(2)
+                        .tipoComprobante(Catalog1_Invoice.FACTURA.getCode())
+                        .descripcionSustento("Mi sustento2")
                         .build()
                 )
                 .build();
